@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { BrowserRouter, Routes, Route, Link, NavLink, useNavigate, useParams, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link, NavLink, useNavigate, useParams } from "react-router-dom";
 import "./index.css";
 
 const KEYS = ["users","currentUser","selectedRole","opportunities","applications","savedOpportunities","messages","notifications","reports","organizations","profiles"];
@@ -50,26 +50,45 @@ function useAuth(){ const [user,setUser]=useStore("currentUser",null); return {u
 
 function Shell({children, role}) {
   const {user,logout}=useAuth();
-  const location = useLocation();
+  const nav=role==="admin"?[["Dashboard","/admin/dashboard"],["Users","/admin/users"],["Organizations","/admin/organizations"],["Reports","/admin/reports"],["Analytics","/admin/analytics"]]:role==="organization"?[["Dashboard","/organization/dashboard"],["Opportunities","/organization/opportunities"],["Create","/organization/create"],["Applicants","/organization/applicants"],["Messages","/organization/messages"],["Profile","/organization/profile"]]:[["Dashboard","/volunteer/dashboard"],["Discover","/volunteer/discover"],["Applications","/volunteer/applications"],["Saved","/volunteer/saved"],["Messages","/volunteer/messages"],["Streak","/volunteer/streak"],["Notifications","/volunteer/notifications"],["Profile","/volunteer/profile"]];
 
-  const desktopNav = role==="admin"
-    ? [["Dashboard","/admin/dashboard"],["Users","/admin/users"],["Organizations","/admin/organizations"],["Reports","/admin/reports"],["Analytics","/admin/analytics"]]
-    : role==="organization"
-    ? [["Dashboard","/organization/dashboard"],["Opportunities","/organization/opportunities"],["Create","/organization/create"],["Applicants","/organization/applicants"],["Messages","/organization/messages"],["Profile","/organization/profile"]]
-    : [["Dashboard","/volunteer/dashboard"],["Discover","/volunteer/discover"],["Applications","/volunteer/applications"],["Saved","/volunteer/saved"],["Messages","/volunteer/messages"],["Streak","/volunteer/streak"],["Notifications","/volunteer/notifications"],["Profile","/volunteer/profile"]];
+  function getMobileIcon(label){
+    const icons = {
+      Dashboard: "⌂",
+      Discover: "⌕",
+      Applications: "□",
+      Saved: "♡",
+      Messages: "✉",
+      Streak: "◉",
+      Notifications: "!",
+      Profile: "●",
+      Users: "●",
+      Organizations: "□",
+      Reports: "!",
+      Analytics: "◉",
+      Opportunities: "⌕",
+      Create: "+",
+      Applicants: "□"
+    };
+    return icons[label] || "●";
+  }
 
-  const mobileNav = role==="volunteer"
-    ? [["Home","/volunteer/dashboard"],["Activity","/volunteer/activity"],["Messages","/volunteer/messages"],["Profile","/volunteer/profile"]]
-    : desktopNav.slice(0,4);
-
-  const isVolunteerHome = role==="volunteer" && location.pathname === "/volunteer/dashboard";
-
-  function MobileIcon({label}){
-    if(label==="Home") return <svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9.5 20v-5h5v5"/></svg>;
-    if(label==="Activity") return <svg viewBox="0 0 24 24"><path d="M5 6.5h14"/><path d="M5 12h14"/><path d="M5 17.5h9"/><path d="M17 16l2 2 3-4"/></svg>;
-    if(label==="Messages") return <svg viewBox="0 0 24 24"><path d="M4.5 6.5h15v10h-9l-4.5 3v-3h-1.5z"/><path d="M8 10h8"/><path d="M8 13h5"/></svg>;
-    if(label==="Profile") return <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4.5 20c1.4-4 13.6-4 15 0"/></svg>;
-    return <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/></svg>;
+  function getMobileLabel(label){
+    const labels = {
+      Dashboard: "Home",
+      Discover: "Search",
+      Applications: "Apps",
+      Saved: "Saved",
+      Messages: "Chat",
+      Streak: "Streak",
+      Notifications: "Alerts",
+      Profile: "Profile",
+      Organizations: "Orgs",
+      Opportunities: "Posts",
+      Applicants: "People",
+      Analytics: "Stats"
+    };
+    return labels[label] || label;
   }
 
   return (
@@ -77,39 +96,26 @@ function Shell({children, role}) {
       <aside className="sidebar glass hidden lg:flex">
         <Link className="brand" to="/">JoinHands</Link>
         <div className="text-sm text-slate-500 mb-4">Connecting people with purpose.</div>
-        {desktopNav.map(n=><NavLink key={n[1]} to={n[1]} className="side-link">{n[0]}</NavLink>)}
+        {nav.map(n=><NavLink key={n[1]} to={n[1]} className="side-link">{n[0]}</NavLink>)}
         <button onClick={logout} className="ghost mt-auto">Sign out</button>
       </aside>
 
-      <main className={`lg:pl-80 p-4 pb-32 lg:pb-8 max-w-7xl mx-auto ${!isVolunteerHome && role==="volunteer" ? "mobile-clean-page" : ""}`}>
-        {isVolunteerHome ? (
-          <div className="home-welcome glass">
-            <div>
-              <p className="welcome-gradient">Welcome Back to JoinHands</p>
-              <h1>{user?.name || "Volunteer"}</h1>
-            </div>
-            <Link to="/volunteer/profile" className="avatar-link" aria-label="Open profile">
-              <span>{(user?.name || "V").slice(0,1).toUpperCase()}</span>
-            </Link>
+      <main className="lg:pl-80 p-4 pb-32 lg:pb-8 max-w-7xl mx-auto">
+        <div className="topbar glass">
+          <div>
+            <p className="eyebrow">{role} workspace</p>
+            <h1 className="text-2xl font-bold">Welcome{user?.name?`, ${user.name.split(" ")[0]}`:""}</h1>
           </div>
-        ) : role !== "volunteer" ? (
-          <div className="topbar glass">
-            <div>
-              <p className="eyebrow">{role} workspace</p>
-              <h1 className="text-2xl font-bold">Welcome{user?.name?`, ${user.name.split(" ")[0]}`:""}</h1>
-            </div>
-            <button onClick={logout} className="btn-secondary hidden sm:block">Sign out</button>
-          </div>
-        ) : null}
-
+          <button onClick={logout} className="btn-secondary hidden sm:block">Sign out</button>
+        </div>
         {children}
       </main>
 
-      <nav className="bottom-nav bottom-nav-four lg:hidden glass">
-        {mobileNav.map(n=>(
-          <NavLink key={n[1]} to={n[1]} className="mobile-tab">
-            <MobileIcon label={n[0]} />
-            <span>{n[0]}</span>
+      <nav className="bottom-nav lg:hidden glass">
+        {nav.map(n=>(
+          <NavLink key={n[1]} to={n[1]} className="mobile-nav-item">
+            <span className="mobile-nav-icon">{getMobileIcon(n[0])}</span>
+            <span className="mobile-nav-label">{getMobileLabel(n[0])}</span>
           </NavLink>
         ))}
       </nav>
@@ -278,50 +284,6 @@ function OpportunityDetail(){const{id}=useParams(),[opps]=useStore("opportunitie
 function Apply(){const{id}=useParams(),nav=useNavigate(),{user}=useAuth();const[txt,setTxt]=useState(""),[err,setErr]=useState("");const[apps,setApps]=useStore("applications",[]);return <Shell role="volunteer"><Card><h2 className="text-2xl font-bold">Application</h2><textarea className="textarea" placeholder="Why do you want to join?" value={txt} onChange={e=>setTxt(e.target.value)}/>{err&&<p className="error">{err}</p>}<Button onClick={()=>{if(txt.length<20){setErr("Motivation must be at least 20 characters.");return} setApps([...apps,{id:uid("app"),opportunityId:id,volunteerId:user?.id||"guest",volunteerName:user?.name||"Guest Volunteer",motivation:txt,status:"pending",createdAt:new Date().toISOString()}]); nav("/volunteer/applications")}}>Submit application</Button></Card></Shell>}
 function MyApplications(){const[apps]=useStore("applications",[]),[opps]=useStore("opportunities",[]);return <Shell role="volunteer"><List items={apps} render={a=><Card key={a.id}><h3 className="font-bold">{opps.find(o=>o.id===a.opportunityId)?.title||"Opportunity"}</h3><p className="pill mt-2">{a.status}</p><p className="muted mt-2">{a.motivation}</p></Card>} empty="No applications yet."/></Shell>}
 function Saved(){const[ids]=useStore("savedOpportunities",[]),[opps]=useStore("opportunities",[]);return <Shell role="volunteer"><OpportunityGrid items={opps.filter(o=>ids.includes(o.id))}/></Shell>}
-function ActivityPage(){
-  const [savedIds]=useStore("savedOpportunities",[]);
-  const [opps]=useStore("opportunities",[]);
-  const [apps]=useStore("applications",[]);
-  const saved = opps.filter(o=>savedIds.includes(o.id));
-  const pending = apps.filter(a=>a.status==="pending" || a.status==="shortlisted");
-  const upcoming = opps.filter(o=>o.status==="active").slice(0,3);
-
-  return (
-    <Shell role="volunteer">
-      <div className="activity-layout">
-        <Card>
-          <p className="eyebrow">Volunteer activity</p>
-          <h2 className="text-2xl font-bold">Saved, pending, and upcoming</h2>
-          <p className="muted mt-2">Track the opportunities that matter most to you.</p>
-        </Card>
-
-        <div className="activity-grid">
-          <Card>
-            <h3 className="font-bold text-lg">Saved Opportunities</h3>
-            <div className="activity-stack">
-              {saved.length ? saved.map(o=><Link key={o.id} className="activity-item" to={`/volunteer/opportunity/${o.id}`}><b>{o.title}</b><span>{o.location} • {o.category}</span></Link>) : <p className="muted">No saved opportunities yet.</p>}
-            </div>
-          </Card>
-
-          <Card>
-            <h3 className="font-bold text-lg">Pending Applications</h3>
-            <div className="activity-stack">
-              {pending.length ? pending.map(a=><div key={a.id} className="activity-item"><b>{opps.find(o=>o.id===a.opportunityId)?.title || "Opportunity"}</b><span>{a.status}</span></div>) : <p className="muted">No pending applications.</p>}
-            </div>
-          </Card>
-
-          <Card>
-            <h3 className="font-bold text-lg">Upcoming Volunteer Events</h3>
-            <div className="activity-stack">
-              {upcoming.map(o=><Link key={o.id} className="activity-item" to={`/volunteer/opportunity/${o.id}`}><b>{o.title}</b><span>{o.date} • {o.location}</span></Link>)}
-            </div>
-          </Card>
-        </div>
-      </div>
-    </Shell>
-  )
-}
-
 function Messages({role="volunteer"}){
   const seedThreads = [
     {id:"redcross", group:"Red Cross", name:"Preparation Team", preview:"Orientation details are ready.", unread:3},
@@ -570,4 +532,4 @@ function Metric({title,value}){return <Card><p className="muted">{title}</p><b c
 function Empty({text}){return <Card><p className="muted">{text}</p></Card>}
 function List({items,render,empty="Nothing here yet."}){return <div className="grid md:grid-cols-2 gap-4">{items?.length?items.map(render):<Empty text={empty}/>}</div>}
 
-export default function App(){useEffect(seed,[]);return <BrowserRouter><Routes><Route path="/" element={<Landing/>}/><Route path="/role" element={<Role/>}/><Route path="/signin" element={<SignIn/>}/><Route path="/signup" element={<SignUp/>}/><Route path="/forgot-password" element={<Forgot/>}/><Route path="/volunteer/dashboard" element={<VolunteerDashboard/>}/><Route path="/volunteer/discover" element={<Discover/>}/><Route path="/volunteer/opportunity/:id" element={<OpportunityDetail/>}/><Route path="/volunteer/apply/:id" element={<Apply/>}/><Route path="/volunteer/applications" element={<MyApplications/>}/><Route path="/volunteer/activity" element={<ActivityPage/>}/><Route path="/volunteer/saved" element={<Saved/>}/><Route path="/volunteer/messages" element={<Messages role="volunteer"/>}/><Route path="/volunteer/streak" element={<StreakPage/>}/><Route path="/volunteer/notifications" element={<Notifications/>}/><Route path="/volunteer/profile" element={<Profile role="volunteer"/>}/><Route path="/organization/dashboard" element={<OrgDashboard/>}/><Route path="/organization/opportunities" element={<ManageOpps/>}/><Route path="/organization/create" element={<CreateOpp/>}/><Route path="/organization/applicants" element={<Applicants/>}/><Route path="/organization/messages" element={<Messages role="organization"/>}/><Route path="/organization/profile" element={<Profile role="organization"/>}/><Route path="/admin/dashboard" element={<AdminDashboard/>}/><Route path="/admin/users" element={<UsersAdmin/>}/><Route path="/admin/organizations" element={<OrgsAdmin/>}/><Route path="/admin/reports" element={<ReportsAdmin/>}/><Route path="/admin/analytics" element={<Analytics/>}/><Route path="*" element={<Landing/>}/></Routes></BrowserRouter>}
+export default function App(){useEffect(seed,[]);return <BrowserRouter><Routes><Route path="/" element={<Landing/>}/><Route path="/role" element={<Role/>}/><Route path="/signin" element={<SignIn/>}/><Route path="/signup" element={<SignUp/>}/><Route path="/forgot-password" element={<Forgot/>}/><Route path="/volunteer/dashboard" element={<VolunteerDashboard/>}/><Route path="/volunteer/discover" element={<Discover/>}/><Route path="/volunteer/opportunity/:id" element={<OpportunityDetail/>}/><Route path="/volunteer/apply/:id" element={<Apply/>}/><Route path="/volunteer/applications" element={<MyApplications/>}/><Route path="/volunteer/saved" element={<Saved/>}/><Route path="/volunteer/messages" element={<Messages role="volunteer"/>}/><Route path="/volunteer/streak" element={<StreakPage/>}/><Route path="/volunteer/notifications" element={<Notifications/>}/><Route path="/volunteer/profile" element={<Profile role="volunteer"/>}/><Route path="/organization/dashboard" element={<OrgDashboard/>}/><Route path="/organization/opportunities" element={<ManageOpps/>}/><Route path="/organization/create" element={<CreateOpp/>}/><Route path="/organization/applicants" element={<Applicants/>}/><Route path="/organization/messages" element={<Messages role="organization"/>}/><Route path="/organization/profile" element={<Profile role="organization"/>}/><Route path="/admin/dashboard" element={<AdminDashboard/>}/><Route path="/admin/users" element={<UsersAdmin/>}/><Route path="/admin/organizations" element={<OrgsAdmin/>}/><Route path="/admin/reports" element={<ReportsAdmin/>}/><Route path="/admin/analytics" element={<Analytics/>}/><Route path="*" element={<Landing/>}/></Routes></BrowserRouter>}
