@@ -49,7 +49,7 @@ function useStore(key, fallback=[]) {
 function useAuth(){ const [user,setUser]=useStore("currentUser",null); return {user, login:setUser, logout:()=>setUser(null)}; }
 
 function Shell({children, role}) {
-  const {user,logout}=useAuth(); const nav=role==="admin"?[["Dashboard","/admin/dashboard"],["Users","/admin/users"],["Organizations","/admin/organizations"],["Reports","/admin/reports"],["Analytics","/admin/analytics"]]:role==="organization"?[["Dashboard","/organization/dashboard"],["Opportunities","/organization/opportunities"],["Create","/organization/create"],["Applicants","/organization/applicants"],["Messages","/organization/messages"],["Profile","/organization/profile"]]:[["Dashboard","/volunteer/dashboard"],["Discover","/volunteer/discover"],["Applications","/volunteer/applications"],["Saved","/volunteer/saved"],["Messages","/volunteer/messages"],["Notifications","/volunteer/notifications"],["Profile","/volunteer/profile"]];
+  const {user,logout}=useAuth(); const nav=role==="admin"?[["Dashboard","/admin/dashboard"],["Users","/admin/users"],["Organizations","/admin/organizations"],["Reports","/admin/reports"],["Analytics","/admin/analytics"]]:role==="organization"?[["Dashboard","/organization/dashboard"],["Opportunities","/organization/opportunities"],["Create","/organization/create"],["Applicants","/organization/applicants"],["Messages","/organization/messages"],["Profile","/organization/profile"]]:[["Dashboard","/volunteer/dashboard"],["Discover","/volunteer/discover"],["Applications","/volunteer/applications"],["Saved","/volunteer/saved"],["Messages","/volunteer/messages"],["Streak","/volunteer/streak"],["Notifications","/volunteer/notifications"],["Profile","/volunteer/profile"]];
   return <div className="min-h-screen app-bg text-slate-900"><aside className="sidebar glass hidden lg:flex"><Link className="brand" to="/">JoinHands</Link><div className="text-sm text-slate-500 mb-4">Connecting people with purpose.</div>{nav.map(n=><NavLink key={n[1]} to={n[1]} className="side-link">{n[0]}</NavLink>)}<button onClick={logout} className="ghost mt-auto">Sign out</button></aside><main className="lg:pl-80 p-4 pb-28 lg:pb-8 max-w-7xl mx-auto"><div className="topbar glass"><div><p className="eyebrow">{role} workspace</p><h1 className="text-2xl font-bold">Welcome{user?.name?`, ${user.name.split(" ")[0]}`:""}</h1></div><button onClick={logout} className="btn-secondary hidden sm:block">Sign out</button></div>{children}</main><nav className="bottom-nav lg:hidden glass">{nav.slice(0,5).map(n=><NavLink key={n[1]} to={n[1]} className="bottom-link">{n[0]}</NavLink>)}</nav></div>
 }
 function Card({children,className=""}){return <section className={`glass card ${className}`}>{children}</section>}
@@ -62,7 +62,147 @@ function Landing(){return <PublicLayout><section className="hero"><div className
 function Role(){return <PublicLayout><div className="center-grid">{["volunteer","organization"].map(r=><Card key={r}><h2 className="text-2xl font-bold capitalize">{r}</h2><p className="muted my-3">{r==="volunteer"?"Find causes, save opportunities, and apply with confidence.":"Create opportunities and manage applicants locally."}</p><Link onClick={()=>set("selectedRole",r)} className="btn w-full text-center" to="/signup">Continue as {r}</Link></Card>)}</div></PublicLayout>}
 
 function SignIn(){const nav=useNavigate(),{login}=useAuth();const[form,setForm]=useState({email:"",password:""}),[err,setErr]=useState({});function submit(e){e.preventDefault();let er={}; if(!emailOk(form.email))er.email="Enter a valid email."; if(!form.password)er.password="Password is required."; setErr(er); if(Object.keys(er).length)return; const role=form.email==="admin@joinhands.app"?"admin":get("selectedRole","volunteer"); const users=get("users",[]); let u=users.find(x=>x.email===form.email)||{id:uid("user"),name:form.email.split("@")[0],email:form.email,role,status:"active"}; login(u); nav(`/${u.role}/dashboard`)}return <PublicLayout><AuthCard title="Sign in" form={form} setForm={setForm} submit={submit} err={err}/></PublicLayout>}
-function SignUp(){const nav=useNavigate(),{login}=useAuth();const[ok,setOk]=useState("");const[form,setForm]=useState({name:"",age:"",email:"",password:"",confirm:"",role:get("selectedRole","volunteer"),terms:false});const[err,setErr]=useState({});function submit(e){e.preventDefault();let er={}; if(!form.name)er.name="Required."; if(!/^\d+$/.test(form.age))er.age="Numbers only."; if(!emailOk(form.email))er.email="Valid email required."; if(!form.password)er.password="Required."; if(form.password!==form.confirm)er.confirm="Passwords must match."; if(!form.terms)er.terms="Please accept the terms."; setErr(er); if(Object.keys(er).length)return; const user={id:uid("user"),name:form.name,email:form.email,role:form.role,status:"active"}; set("users",[...get("users",[]),user]); login(user); setOk("Account created successfully."); setTimeout(()=>nav(`/${form.role}/dashboard`),300)}return <PublicLayout><Card className="auth"><h2>Create your account</h2><form onSubmit={submit} className="space-y-3"><Field label="Full name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} error={err.name}/><Field label="Age" value={form.age} onChange={e=>setForm({...form,age:e.target.value})} error={err.age}/><Field label="Email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} error={err.email}/><Field label="Password" type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} error={err.password}/><Field label="Confirm password" type="password" value={form.confirm} onChange={e=>setForm({...form,confirm:e.target.value})} error={err.confirm}/><Select label="Role" value={form.role} onChange={e=>setForm({...form,role:e.target.value})}><option value="volunteer">Volunteer</option><option value="organization">Organization</option></Select><label className="check"><input type="checkbox" checked={form.terms} onChange={e=>setForm({...form,terms:e.target.checked})}/> I agree to JoinHands demo terms.</label>{err.terms&&<small className="error">{err.terms}</small>}{ok&&<p className="success">{ok}</p>}<Button className="w-full">Create account</Button></form></Card></PublicLayout>}
+function SignUp(){
+  const nav = useNavigate(), { login } = useAuth();
+  const [ok, setOk] = useState("");
+  const [form, setForm] = useState({
+    name: "",
+    age: "",
+    email: "",
+    password: "",
+    confirm: "",
+    role: get("selectedRole", "volunteer"),
+    terms: false,
+    contactPerson: "",
+    location: "",
+    field: ""
+  });
+  const [err, setErr] = useState({});
+
+  function submit(e){
+    e.preventDefault();
+    let er = {};
+
+    if (form.role === "volunteer") {
+      if (!form.name) er.name = "Full name is required.";
+      if (!/^\d+$/.test(form.age)) er.age = "Age must be numbers only.";
+    }
+
+    if (form.role === "organization") {
+      if (!form.name) er.name = "Organization name is required.";
+      if (!form.contactPerson) er.contactPerson = "Contact person is required.";
+      if (!form.location) er.location = "Location is required.";
+      if (!form.field) er.field = "Organization field is required.";
+    }
+
+    if (!emailOk(form.email)) er.email = "Valid email required.";
+    if (!form.password) er.password = "Password is required.";
+    if (form.password !== form.confirm) er.confirm = "Passwords must match.";
+    if (!form.terms) er.terms = "Please accept the terms.";
+
+    setErr(er);
+    if (Object.keys(er).length) return;
+
+    const userId = uid("user");
+    const orgId = form.role === "organization" ? uid("org") : undefined;
+
+    const user = {
+      id: userId,
+      name: form.name,
+      email: form.email,
+      role: form.role,
+      status: "active",
+      ...(form.role === "volunteer" ? { age: form.age } : {}),
+      ...(form.role === "organization" ? {
+        orgId,
+        contactPerson: form.contactPerson,
+        location: form.location,
+        field: form.field
+      } : {})
+    };
+
+    set("users", [...get("users", []), user]);
+
+    if (form.role === "organization") {
+      const newOrg = {
+        id: orgId,
+        name: form.name,
+        location: form.location,
+        field: form.field,
+        status: "pending",
+        description: `${form.name} is awaiting JoinHands admin review.`
+      };
+
+      set("organizations", [...get("organizations", []), newOrg]);
+    }
+
+    login(user);
+    setOk("Account created successfully.");
+    setTimeout(() => nav(`/${form.role}/dashboard`), 300);
+  }
+
+  return (
+    <PublicLayout>
+      <Card className="auth">
+        <h2>Create your account</h2>
+
+        <form onSubmit={submit} className="space-y-3">
+          <Select
+            label="Role"
+            value={form.role}
+            onChange={e => {
+              const role = e.target.value;
+              set("selectedRole", role);
+              setForm({
+                ...form,
+                role,
+                name: "",
+                age: "",
+                contactPerson: "",
+                location: "",
+                field: ""
+              });
+              setErr({});
+            }}
+          >
+            <option value="volunteer">Volunteer</option>
+            <option value="organization">Organization</option>
+          </Select>
+
+          {form.role === "volunteer" ? (
+            <>
+              <Field label="Full name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} error={err.name}/>
+              <Field label="Age" value={form.age} onChange={e => setForm({ ...form, age: e.target.value })} error={err.age}/>
+              <Field label="Email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} error={err.email}/>
+            </>
+          ) : (
+            <>
+              <Field label="Organization name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} error={err.name}/>
+              <Field label="Contact person" value={form.contactPerson} onChange={e => setForm({ ...form, contactPerson: e.target.value })} error={err.contactPerson}/>
+              <Field label="Organization email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} error={err.email}/>
+              <Field label="Location" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} error={err.location}/>
+              <Field label="Organization field / category" value={form.field} onChange={e => setForm({ ...form, field: e.target.value })} error={err.field}/>
+            </>
+          )}
+
+          <Field label="Password" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} error={err.password}/>
+          <Field label="Confirm password" type="password" value={form.confirm} onChange={e => setForm({ ...form, confirm: e.target.value })} error={err.confirm}/>
+
+          <label className="check">
+            <input type="checkbox" checked={form.terms} onChange={e => setForm({ ...form, terms: e.target.checked })}/>
+            I agree to JoinHands demo terms.
+          </label>
+
+          {err.terms && <small className="error">{err.terms}</small>}
+          {ok && <p className="success">{ok}</p>}
+
+          <Button className="w-full">Create account</Button>
+        </form>
+      </Card>
+    </PublicLayout>
+  );
+}
+
 function AuthCard({title,form,setForm,submit,err}){return <Card className="auth"><h2>{title}</h2><form onSubmit={submit} className="space-y-4"><Field label="Email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} error={err.email}/><Field label="Password" type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} error={err.password}/><Button className="w-full">Sign in</Button><Link className="muted block text-center" to="/forgot-password">Forgot password?</Link></form></Card>}
 function Forgot(){const[mail,setMail]=useState(""),[msg,setMsg]=useState(""),[err,setErr]=useState("");return <PublicLayout><Card className="auth"><h2>Reset password</h2><form onSubmit={e=>{e.preventDefault(); if(!emailOk(mail)){setErr("Enter a valid email.");return} setErr("");setMsg("Password reset instructions were simulated successfully.");}}><Field label="Email" value={mail} onChange={e=>setMail(e.target.value)} error={err}/><Button className="w-full mt-4">Send reset link</Button>{msg&&<p className="success">{msg}</p>}</form></Card></PublicLayout>}
 
@@ -74,7 +214,234 @@ function OpportunityDetail(){const{id}=useParams(),[opps]=useStore("opportunitie
 function Apply(){const{id}=useParams(),nav=useNavigate(),{user}=useAuth();const[txt,setTxt]=useState(""),[err,setErr]=useState("");const[apps,setApps]=useStore("applications",[]);return <Shell role="volunteer"><Card><h2 className="text-2xl font-bold">Application</h2><textarea className="textarea" placeholder="Why do you want to join?" value={txt} onChange={e=>setTxt(e.target.value)}/>{err&&<p className="error">{err}</p>}<Button onClick={()=>{if(txt.length<20){setErr("Motivation must be at least 20 characters.");return} setApps([...apps,{id:uid("app"),opportunityId:id,volunteerId:user?.id||"guest",volunteerName:user?.name||"Guest Volunteer",motivation:txt,status:"pending",createdAt:new Date().toISOString()}]); nav("/volunteer/applications")}}>Submit application</Button></Card></Shell>}
 function MyApplications(){const[apps]=useStore("applications",[]),[opps]=useStore("opportunities",[]);return <Shell role="volunteer"><List items={apps} render={a=><Card key={a.id}><h3 className="font-bold">{opps.find(o=>o.id===a.opportunityId)?.title||"Opportunity"}</h3><p className="pill mt-2">{a.status}</p><p className="muted mt-2">{a.motivation}</p></Card>} empty="No applications yet."/></Shell>}
 function Saved(){const[ids]=useStore("savedOpportunities",[]),[opps]=useStore("opportunities",[]);return <Shell role="volunteer"><OpportunityGrid items={opps.filter(o=>ids.includes(o.id))}/></Shell>}
-function Messages({role="volunteer"}){const[msg,setMsg]=useStore("messages",[]);const[text,setText]=useState("");return <Shell role={role}><Card><h2 className="text-2xl font-bold">Messages</h2><div className="space-y-3 my-4">{msg.map(m=><div key={m.id} className="message"><b>{m.from}</b><p>{m.text}</p></div>)}</div><input className="input" placeholder="Write a local message" value={text} onChange={e=>setText(e.target.value)}/><Button className="mt-3" disabled={!text} onClick={()=>{setMsg([...msg,{id:uid("msg"),from:role,to:"local",text,createdAt:new Date().toISOString(),read:false}]);setText("");}}>Send</Button></Card></Shell>}
+function Messages({role="volunteer"}){
+  const seedThreads = [
+    {id:"redcross", group:"Red Cross", name:"Preparation Team", preview:"Orientation details are ready.", unread:3},
+    {id:"distribution", group:"Red Cross", name:"Distribution Team", preview:"Packing starts at 8 AM.", unread:1},
+    {id:"water", group:"Water Distribution", name:"Field Volunteers", preview:"Bring tumblers and caps.", unread:2},
+    {id:"feeding", group:"Community Feeding", name:"Meal Prep Team", preview:"Final headcount confirmed.", unread:5},
+    {id:"medical", group:"Medical Mission", name:"Mandaue Medical Team", preview:"Please confirm your availability.", unread:0}
+  ];
+
+  const [threads] = useState(seedThreads);
+  const [active, setActive] = useState(seedThreads[0].id);
+  const [query, setQuery] = useState("");
+  const [allMessages, setAllMessages] = useStore("messages", []);
+  const [text, setText] = useState("");
+
+  const activeThread = threads.find(t => t.id === active);
+  const filteredThreads = threads.filter(t =>
+    t.name.toLowerCase().includes(query.toLowerCase()) ||
+    t.group.toLowerCase().includes(query.toLowerCase())
+  );
+
+  const threadMessages = allMessages.filter(m => m.threadId === active);
+
+  const fallbackMessages = [
+    {id:"demo1", threadId:active, from:"Ken Rod", side:"in", text:"Hey team, morning! Who's joining this April 24?", createdAt:new Date().toISOString()},
+    {id:"demo2", threadId:active, from:"Cindy Lepatan", side:"in", text:"I'm confirming my participation. Where is our meeting place?", createdAt:new Date().toISOString()},
+    {id:"demo3", threadId:active, from:"You", side:"out", text:"Thanks for confirming. Address: Osmeña Blvd, Cebu City.", createdAt:new Date().toISOString()}
+  ];
+
+  const visibleMessages = threadMessages.length ? threadMessages : fallbackMessages;
+
+  function sendMessage(){
+    if(!text.trim()) return;
+    setAllMessages([
+      ...allMessages,
+      {
+        id: uid("msg"),
+        threadId: active,
+        from: role === "organization" ? "Organization" : "You",
+        to: activeThread?.name || "Team",
+        side: "out",
+        text: text.trim(),
+        createdAt: new Date().toISOString(),
+        read: false
+      }
+    ]);
+    setText("");
+  }
+
+  if(role === "organization"){
+    return (
+      <Shell role={role}>
+        <Card>
+          <h2 className="text-2xl font-bold">Organization Messages</h2>
+          <p className="muted mt-2">Coordinate with volunteers and applicants through local demo messages.</p>
+          <div className="space-y-3 my-4">
+            {allMessages.map(m => (
+              <div key={m.id} className="message">
+                <b>{m.from}</b>
+                <p>{m.text}</p>
+              </div>
+            ))}
+          </div>
+          <input className="input" placeholder="Write a local message" value={text} onChange={e=>setText(e.target.value)}/>
+          <Button className="mt-3" disabled={!text} onClick={sendMessage}>Send</Button>
+        </Card>
+      </Shell>
+    )
+  }
+
+  return (
+    <Shell role="volunteer">
+      <div className="chat-shell glass">
+        <aside className="chat-list">
+          <div className="chat-search-wrap">
+            <h2>Messages</h2>
+            <input className="chat-search" placeholder="Search workspace" value={query} onChange={e=>setQuery(e.target.value)}/>
+          </div>
+
+          <div className="chat-groups">
+            {filteredThreads.map(thread => (
+              <button
+                key={thread.id}
+                className={`chat-row ${active === thread.id ? "active" : ""}`}
+                onClick={() => setActive(thread.id)}
+              >
+                <span className="chat-avatar">{thread.name.slice(0,1)}</span>
+                <span className="chat-meta">
+                  <small>{thread.group}</small>
+                  <b>{thread.name}</b>
+                  <em>{thread.preview}</em>
+                </span>
+                {thread.unread > 0 && <span className="unread-badge">{thread.unread}</span>}
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        <section className="chat-panel">
+          {activeThread ? (
+            <>
+              <div className="chat-header">
+                <div>
+                  <small>{activeThread.group}</small>
+                  <h3>{activeThread.name}</h3>
+                </div>
+                <span className="chat-status">Active</span>
+              </div>
+
+              <div className="chat-window">
+                <span className="chat-date">Today 9:00</span>
+                {visibleMessages.map(m => (
+                  <div key={m.id} className={`bubble-row ${m.side === "out" ? "out" : "in"}`}>
+                    {m.side !== "out" && <span className="mini-avatar">{m.from.slice(0,1)}</span>}
+                    <div className={`chat-bubble ${m.side === "out" ? "outgoing" : "incoming"}`}>
+                      <small>{m.from}</small>
+                      <p>{m.text}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="message-composer">
+                <input
+                  placeholder="Type message here..."
+                  value={text}
+                  onChange={e=>setText(e.target.value)}
+                  onKeyDown={e=>{ if(e.key === "Enter") sendMessage(); }}
+                />
+                <button onClick={sendMessage} disabled={!text.trim()}>Send</button>
+              </div>
+            </>
+          ) : (
+            <div className="chat-empty">Select a conversation to begin.</div>
+          )}
+        </section>
+      </div>
+    </Shell>
+  )
+}
+
+function StreakPage(){
+  const {user} = useAuth();
+  const [streak, setStreak] = useStore("streak", {
+    current: 5,
+    impactWeeks: 24,
+    level: "Community Helper",
+    progress: 50,
+    stage: 5
+  });
+  const [message, setMessage] = useState("");
+
+  function logActivity(){
+    const nextProgress = Math.min(100, streak.progress + 10);
+    const next = {
+      ...streak,
+      current: streak.current + 1,
+      impactWeeks: Math.floor((streak.current + 1) / 7) + 24,
+      progress: nextProgress >= 100 ? 10 : nextProgress,
+      stage: nextProgress >= 100 ? Math.min(10, streak.stage + 1) : streak.stage,
+      level: streak.current + 1 >= 20 ? "Impact Builder" : "Community Helper"
+    };
+    setStreak(next);
+    setMessage("Volunteer activity logged successfully.");
+    setTimeout(() => setMessage(""), 2200);
+  }
+
+  return (
+    <Shell role="volunteer">
+      <div className="streak-page">
+        <section className="streak-phone glass">
+          <div className="streak-top">
+            <span>9:41</span>
+            <div className="streak-progress-wrap">
+              <div className="streak-progress">
+                <span style={{width:`${streak.progress}%`}} />
+              </div>
+              <small>Hatching Stage: {streak.stage}/10</small>
+            </div>
+          </div>
+
+          <div className="streak-name">
+            <h2>{user?.name || "Volunteer"}</h2>
+            <p>{streak.level}</p>
+          </div>
+
+          <div className="pet-stage">
+            <span className="sparkle s1"></span>
+            <span className="sparkle s2"></span>
+            <span className="sparkle s3"></span>
+
+            <div className="pet">
+              <div className="pet-feathers"></div>
+              <div className="pet-head">
+                <span className="eye left"></span>
+                <span className="eye right"></span>
+                <span className="beak"></span>
+              </div>
+              <div className="pet-body">
+                <span>JOINHANDS</span>
+              </div>
+              <div className="pet-feet"></div>
+            </div>
+          </div>
+
+          <div className="streak-summary">
+            <p>Total Streak</p>
+            <h3>{streak.impactWeeks} Weeks</h3>
+            <span>{streak.current} activities logged</span>
+          </div>
+
+          <div className="badge-row">
+            <span>Early Helper</span>
+            <span>2 Month Streak</span>
+            <span>Community Builder</span>
+          </div>
+
+          {message && <p className="success text-center mt-4">{message}</p>}
+
+          <Button className="w-full mt-5" onClick={logActivity}>
+            Log volunteer activity
+          </Button>
+        </section>
+      </div>
+    </Shell>
+  )
+}
+
 function Notifications(){const[n,setN]=useStore("notifications",[]);return <Shell role="volunteer"><List items={n} render={x=><Card key={x.id}><p>{x.text}</p><button className="btn-secondary mt-3" onClick={()=>setN(n.map(a=>a.id===x.id?{...a,read:true}:a))}>{x.read?"Read":"Mark as read"}</button></Card>} empty="No notifications."/></Shell>}
 function Profile({role="volunteer"}){const{user}=useAuth();const[profiles,setProfiles]=useStore("profiles",{});const[p,setP]=useState(profiles[user?.id]||{});return <Shell role={role}><Card><h2 className="text-2xl font-bold">Profile</h2><input className="input mt-4" placeholder="Bio or mission" value={p.bio||p.mission||""} onChange={e=>setP({...p,bio:e.target.value,mission:e.target.value})}/><input className="input mt-3" placeholder="Skills / Field" value={p.skills||""} onChange={e=>setP({...p,skills:e.target.value})}/><Button className="mt-4" onClick={()=>setProfiles({...profiles,[user?.id||"guest"]:p})}>Save profile</Button></Card></Shell>}
 
@@ -93,4 +460,4 @@ function Metric({title,value}){return <Card><p className="muted">{title}</p><b c
 function Empty({text}){return <Card><p className="muted">{text}</p></Card>}
 function List({items,render,empty="Nothing here yet."}){return <div className="grid md:grid-cols-2 gap-4">{items?.length?items.map(render):<Empty text={empty}/>}</div>}
 
-export default function App(){useEffect(seed,[]);return <BrowserRouter><Routes><Route path="/" element={<Landing/>}/><Route path="/role" element={<Role/>}/><Route path="/signin" element={<SignIn/>}/><Route path="/signup" element={<SignUp/>}/><Route path="/forgot-password" element={<Forgot/>}/><Route path="/volunteer/dashboard" element={<VolunteerDashboard/>}/><Route path="/volunteer/discover" element={<Discover/>}/><Route path="/volunteer/opportunity/:id" element={<OpportunityDetail/>}/><Route path="/volunteer/apply/:id" element={<Apply/>}/><Route path="/volunteer/applications" element={<MyApplications/>}/><Route path="/volunteer/saved" element={<Saved/>}/><Route path="/volunteer/messages" element={<Messages role="volunteer"/>}/><Route path="/volunteer/notifications" element={<Notifications/>}/><Route path="/volunteer/profile" element={<Profile role="volunteer"/>}/><Route path="/organization/dashboard" element={<OrgDashboard/>}/><Route path="/organization/opportunities" element={<ManageOpps/>}/><Route path="/organization/create" element={<CreateOpp/>}/><Route path="/organization/applicants" element={<Applicants/>}/><Route path="/organization/messages" element={<Messages role="organization"/>}/><Route path="/organization/profile" element={<Profile role="organization"/>}/><Route path="/admin/dashboard" element={<AdminDashboard/>}/><Route path="/admin/users" element={<UsersAdmin/>}/><Route path="/admin/organizations" element={<OrgsAdmin/>}/><Route path="/admin/reports" element={<ReportsAdmin/>}/><Route path="/admin/analytics" element={<Analytics/>}/><Route path="*" element={<Landing/>}/></Routes></BrowserRouter>}
+export default function App(){useEffect(seed,[]);return <BrowserRouter><Routes><Route path="/" element={<Landing/>}/><Route path="/role" element={<Role/>}/><Route path="/signin" element={<SignIn/>}/><Route path="/signup" element={<SignUp/>}/><Route path="/forgot-password" element={<Forgot/>}/><Route path="/volunteer/dashboard" element={<VolunteerDashboard/>}/><Route path="/volunteer/discover" element={<Discover/>}/><Route path="/volunteer/opportunity/:id" element={<OpportunityDetail/>}/><Route path="/volunteer/apply/:id" element={<Apply/>}/><Route path="/volunteer/applications" element={<MyApplications/>}/><Route path="/volunteer/saved" element={<Saved/>}/><Route path="/volunteer/messages" element={<Messages role="volunteer"/>}/><Route path="/volunteer/streak" element={<StreakPage/>}/><Route path="/volunteer/notifications" element={<Notifications/>}/><Route path="/volunteer/profile" element={<Profile role="volunteer"/>}/><Route path="/organization/dashboard" element={<OrgDashboard/>}/><Route path="/organization/opportunities" element={<ManageOpps/>}/><Route path="/organization/create" element={<CreateOpp/>}/><Route path="/organization/applicants" element={<Applicants/>}/><Route path="/organization/messages" element={<Messages role="organization"/>}/><Route path="/organization/profile" element={<Profile role="organization"/>}/><Route path="/admin/dashboard" element={<AdminDashboard/>}/><Route path="/admin/users" element={<UsersAdmin/>}/><Route path="/admin/organizations" element={<OrgsAdmin/>}/><Route path="/admin/reports" element={<ReportsAdmin/>}/><Route path="/admin/analytics" element={<Analytics/>}/><Route path="*" element={<Landing/>}/></Routes></BrowserRouter>}
