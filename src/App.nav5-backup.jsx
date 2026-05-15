@@ -59,7 +59,7 @@ function Shell({children, role}) {
     : [["Dashboard","/volunteer/dashboard"],["Discover","/volunteer/discover"],["Applications","/volunteer/applications"],["Saved","/volunteer/saved"],["Messages","/volunteer/messages"],["Streak","/volunteer/streak"],["Notifications","/volunteer/notifications"],["Profile","/volunteer/profile"]];
 
   const mobileNav = role==="volunteer"
-    ? [["Home","/volunteer/dashboard"],["Activity","/volunteer/activity"],["Messages","/volunteer/messages"],["Streak","/volunteer/streak"],["Profile","/volunteer/profile"]]
+    ? [["Home","/volunteer/dashboard"],["Activity","/volunteer/activity"],["Messages","/volunteer/messages"],["Profile","/volunteer/profile"]]
     : desktopNav.slice(0,4);
 
   const isVolunteerHome = role==="volunteer" && location.pathname === "/volunteer/dashboard";
@@ -68,7 +68,6 @@ function Shell({children, role}) {
     if(label==="Home") return <svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9.5 20v-5h5v5"/></svg>;
     if(label==="Activity") return <svg viewBox="0 0 24 24"><path d="M5 6.5h14"/><path d="M5 12h14"/><path d="M5 17.5h9"/><path d="M17 16l2 2 3-4"/></svg>;
     if(label==="Messages") return <svg viewBox="0 0 24 24"><path d="M4.5 6.5h15v10h-9l-4.5 3v-3h-1.5z"/><path d="M8 10h8"/><path d="M8 13h5"/></svg>;
-    if(label==="Streak") return <svg viewBox="0 0 24 24"><path d="M12 21c-3.9 0-7-2.8-7-6.7 0-2.4 1.2-4.5 3.1-5.7.1 1.7.8 2.8 2 3.5-.4-3.3 1.2-6.2 4.4-8.1.2 3 1.5 4.7 3.1 6.3 1.1 1.1 1.9 2.4 1.9 4 0 3.9-3.1 6.7-7.5 6.7Z"/><path d="M12 18c-1.4 0-2.5-1-2.5-2.3 0-1 .5-1.8 1.3-2.3.1.8.4 1.3 1 1.7-.1-1.3.5-2.5 1.8-3.4.1 1.2.6 1.9 1.2 2.6.4.4.7.9.7 1.5 0 1.2-1.1 2.2-3.5 2.2Z"/></svg>;
     if(label==="Profile") return <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4.5 20c1.4-4 13.6-4 15 0"/></svg>;
     return <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/></svg>;
   }

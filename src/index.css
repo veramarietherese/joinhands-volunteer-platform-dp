@@ -835,3 +835,53 @@ linear-gradient(135deg,#fffafa 0%,#fff1f7 46%,#f7f0ff 100%);position:relative;ov
     border-radius: 28px;
   }
 }
+
+
+/* Nav patch: 5-item volunteer bottom navigation */
+.bottom-nav-four {
+  grid-template-columns: repeat(5, 1fr) !important;
+  overflow: visible !important;
+  gap: 4px !important;
+  padding: 8px !important;
+}
+
+.mobile-tab {
+  min-width: 0 !important;
+  width: 100%;
+  height: 58px;
+  gap: 3px;
+}
+
+.mobile-tab svg {
+  width: 23px;
+  height: 23px;
+  stroke-width: 2.05;
+}
+
+.mobile-tab span {
+  font-size: 9.2px;
+  letter-spacing: -0.035em;
+}
+
+@media (max-width: 390px) {
+  .bottom-nav-four {
+    left: 8px;
+    right: 8px;
+    padding: 7px !important;
+    gap: 2px !important;
+  }
+
+  .mobile-tab {
+    height: 56px;
+    border-radius: 20px;
+  }
+
+  .mobile-tab svg {
+    width: 21px;
+    height: 21px;
+  }
+
+  .mobile-tab span {
+    font-size: 8.6px;
+  }
+}
