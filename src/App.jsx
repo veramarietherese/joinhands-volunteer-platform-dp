@@ -263,6 +263,8 @@ function Messages({role="volunteer"}){
     setText("");
   }
 
+  
+
   if(role === "organization"){
     return (
       <Shell role={role}>
