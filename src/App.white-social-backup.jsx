@@ -126,6 +126,59 @@ function PublicLayout({children}){return <div className="min-h-screen app-bg p-4
 function Landing(){return <PublicLayout><section className="hero"><div className="glass hero-card"><p className="eyebrow">Volunteer platform for Cebu communities</p><h1>Connecting people with purpose.</h1><p>Discover opportunities, support verified organizations, manage applications, and coordinate local impact through a polished frontend demo.</p><div className="flex flex-wrap gap-3"><Link className="btn" to="/role">Start now</Link><Link className="btn-secondary" to="/volunteer/discover">Explore demo</Link></div></div><div className="glass stats"><b>8</b><span>Seeded opportunities</span><b>6</b><span>Local organizations</span><b>100%</b><span>Frontend-only demo</span></div></section></PublicLayout>}
 function Role(){return <PublicLayout><div className="center-grid">{["volunteer","organization"].map(r=><Card key={r}><h2 className="text-2xl font-bold capitalize">{r}</h2><p className="muted my-3">{r==="volunteer"?"Find causes, save opportunities, and apply with confidence.":"Create opportunities and manage applicants locally."}</p><Link onClick={()=>set("selectedRole",r)} className="btn w-full text-center" to="/signup">Continue as {r}</Link></Card>)}</div></PublicLayout>}
 
+function SocialAuthButtons({mode="signin"}){
+  const nav = useNavigate(), { login } = useAuth();
+
+  function handleSocial(provider){
+    const selectedRole = get("selectedRole","volunteer");
+    const isGoogle = provider === "google";
+    const userEmail = isGoogle ? "google.demo@joinhands.app" : "apple.demo@joinhands.app";
+    const userName = isGoogle ? "Google Demo User" : "Apple Demo User";
+    const role = userEmail === "admin@joinhands.app" ? "admin" : selectedRole;
+
+    const users = get("users",[]);
+    let user = users.find(u => u.email === userEmail);
+
+    if(!user){
+      user = {
+        id: uid("user"),
+        name: userName,
+        email: userEmail,
+        role,
+        status: "active",
+        provider
+      };
+      set("users",[...users,user]);
+    } else {
+      user = {...user, role};
+      set("users", users.map(u => u.email === userEmail ? user : u));
+    }
+
+    login(user);
+    nav(`/${role}/dashboard`);
+  }
+
+  return (
+    <div className="social-auth">
+      <div className="auth-divider">
+        <span></span>
+        <p>or continue with</p>
+        <span></span>
+      </div>
+
+      <button type="button" className="social-btn" onClick={()=>handleSocial("google")}>
+        <span className="social-mark google-mark">G</span>
+        Continue with Google
+      </button>
+
+      <button type="button" className="social-btn" onClick={()=>handleSocial("apple")}>
+        <span className="social-mark apple-mark">A</span>
+        Continue with Apple
+      </button>
+    </div>
+  )
+}
+
 function SignIn(){const nav=useNavigate(),{login}=useAuth();const[form,setForm]=useState({email:"",password:""}),[err,setErr]=useState({});function submit(e){e.preventDefault();let er={}; if(!emailOk(form.email))er.email="Enter a valid email."; if(!form.password)er.password="Password is required."; setErr(er); if(Object.keys(er).length)return; const role=form.email==="admin@joinhands.app"?"admin":get("selectedRole","volunteer"); const users=get("users",[]); let u=users.find(x=>x.email===form.email)||{id:uid("user"),name:form.email.split("@")[0],email:form.email,role,status:"active"}; login(u); nav(`/${u.role}/dashboard`)}return <PublicLayout><AuthCard title="Sign in" form={form} setForm={setForm} submit={submit} err={err}/></PublicLayout>}
 function SignUp(){
   const nav = useNavigate(), { login } = useAuth();
@@ -261,19 +314,124 @@ function SignUp(){
           {err.terms && <small className="error">{err.terms}</small>}
           {ok && <p className="success">{ok}</p>}
 
-          <Button className="w-full">Create account</Button>
+          <Button className="w-full">Create account</Button><SocialAuthButtons mode="signup"/>
         </form>
       </Card>
     </PublicLayout>
   );
 }
 
-function AuthCard({title,form,setForm,submit,err}){return <Card className="auth"><h2>{title}</h2><form onSubmit={submit} className="space-y-4"><Field label="Email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} error={err.email}/><Field label="Password" type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} error={err.password}/><Button className="w-full">Sign in</Button><Link className="muted block text-center" to="/forgot-password">Forgot password?</Link></form></Card>}
+function AuthCard({title,form,setForm,submit,err}){return <Card className="auth"><h2>{title}</h2><form onSubmit={submit} className="space-y-4"><Field label="Email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} error={err.email}/><Field label="Password" type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} error={err.password}/><Button className="w-full">Sign in</Button><SocialAuthButtons mode="signin"/><Link className="muted block text-center" to="/forgot-password">Forgot password?</Link></form></Card>}
 function Forgot(){const[mail,setMail]=useState(""),[msg,setMsg]=useState(""),[err,setErr]=useState("");return <PublicLayout><Card className="auth"><h2>Reset password</h2><form onSubmit={e=>{e.preventDefault(); if(!emailOk(mail)){setErr("Enter a valid email.");return} setErr("");setMsg("Password reset instructions were simulated successfully.");}}><Field label="Email" value={mail} onChange={e=>setMail(e.target.value)} error={err}/><Button className="w-full mt-4">Send reset link</Button>{msg&&<p className="success">{msg}</p>}</form></Card></PublicLayout>}
 
 function OppFilters({setQ,setCat,setLoc,setSkill,cats,locs,skills}){return <Card className="grid md:grid-cols-4 gap-3"><input className="input" placeholder="Search opportunities" onChange={e=>setQ(e.target.value)}/><select className="input" onChange={e=>setCat(e.target.value)}><option value="">All categories</option>{cats.map(x=><option key={x}>{x}</option>)}</select><select className="input" onChange={e=>setLoc(e.target.value)}><option value="">All locations</option>{locs.map(x=><option key={x}>{x}</option>)}</select><select className="input" onChange={e=>setSkill(e.target.value)}><option value="">All skills</option>{skills.map(x=><option key={x}>{x}</option>)}</select></Card>}
 function OpportunityGrid({items}){return <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">{items.map(o=><Card key={o.id}><p className="pill">{o.category}</p><h3 className="text-xl font-bold mt-3">{o.title}</h3><p className="muted">{o.org}</p><p className="mt-3">{o.location} • {o.skill}</p><Link className="btn-secondary mt-4 inline-block" to={`/volunteer/opportunity/${o.id}`}>View details</Link></Card>)}</div>}
-function VolunteerDashboard(){const[opps]=useStore("opportunities",[]),[apps]=useStore("applications",[]);return <Shell role="volunteer"><div className="grid md:grid-cols-3 gap-4"><Metric title="Open opportunities" value={opps.filter(o=>o.status==="active").length}/><Metric title="My applications" value={apps.length}/><Metric title="Saved" value={get("savedOpportunities",[]).length}/></div><h2 className="section-title">Recommended opportunities</h2><OpportunityGrid items={opps.slice(0,3)}/></Shell>}
+function VolunteerDashboard(){
+  const [opps]=useStore("opportunities",[]);
+  const [users]=useStore("users",[]);
+  const [orgs]=useStore("organizations",[]);
+  const [q,setQ]=useState("");
+  const [cat,setCat]=useState("");
+  const [loc,setLoc]=useState("");
+  const [skill,setSkill]=useState("");
+
+  const categories = [...new Set(opps.map(o=>o.category))];
+  const locations = [...new Set(opps.map(o=>o.location))];
+  const skills = [...new Set(opps.map(o=>o.skill))];
+
+  const filtered = opps.filter(o =>
+    o.status==="active" &&
+    (!q || o.title.toLowerCase().includes(q.toLowerCase()) || o.org.toLowerCase().includes(q.toLowerCase())) &&
+    (!cat || o.category===cat) &&
+    (!loc || o.location===loc) &&
+    (!skill || o.skill===skill)
+  );
+
+  return (
+    <Shell role="volunteer">
+      <section className="home-stats glass">
+        <div>
+          <span>{opps.filter(o=>o.status==="active").length}</span>
+          <p>Open Opportunities</p>
+        </div>
+        <div>
+          <span>{users.filter(u=>u.role==="volunteer").length + 128}</span>
+          <p>Total Volunteers</p>
+        </div>
+        <div>
+          <span>{orgs.length}</span>
+          <p>Total Organizations</p>
+        </div>
+      </section>
+
+      <section className="home-discovery glass">
+        <div className="home-section-head">
+          <div>
+            <p className="eyebrow">Find your next cause</p>
+            <h2>Discover opportunities</h2>
+          </div>
+          <span>{filtered.length} results</span>
+        </div>
+
+        <div className="home-search-panel">
+          <input
+            className="home-search-input"
+            placeholder="Search volunteer opportunities"
+            value={q}
+            onChange={e=>setQ(e.target.value)}
+          />
+
+          <div className="home-filter-grid">
+            <select value={cat} onChange={e=>setCat(e.target.value)}>
+              <option value="">All categories</option>
+              {categories.map(x=><option key={x} value={x}>{x}</option>)}
+            </select>
+
+            <select value={loc} onChange={e=>setLoc(e.target.value)}>
+              <option value="">All locations</option>
+              {locations.map(x=><option key={x} value={x}>{x}</option>)}
+            </select>
+
+            <select value={skill} onChange={e=>setSkill(e.target.value)}>
+              <option value="">All skills</option>
+              {skills.map(x=><option key={x} value={x}>{x}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="category-glass-grid">
+          {categories.slice(0,6).map(category=>(
+            <button
+              key={category}
+              className={`category-glass-card ${cat===category ? "active" : ""}`}
+              onClick={()=>setCat(cat===category ? "" : category)}
+            >
+              <span>{category.slice(0,2).toUpperCase()}</span>
+              <b>{category}</b>
+              <small>{opps.filter(o=>o.category===category).length} opportunities</small>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="home-recommendations">
+        <div className="home-section-head">
+          <div>
+            <p className="eyebrow">Recommended</p>
+            <h2>Opportunities for you</h2>
+          </div>
+        </div>
+
+        {filtered.length ? (
+          <OpportunityGrid items={filtered.slice(0,6)}/>
+        ) : (
+          <Empty text="No matching opportunities found. Try changing your filters."/>
+        )}
+      </section>
+    </Shell>
+  )
+}
+
 function Discover(){const[opps]=useStore("opportunities",[]);const[q,setQ]=useState(""),[cat,setCat]=useState(""),[loc,setLoc]=useState(""),[skill,setSkill]=useState("");const f=opps.filter(o=>o.status==="active"&&(!q||o.title.toLowerCase().includes(q.toLowerCase())||o.org.toLowerCase().includes(q.toLowerCase()))&&(!cat||o.category===cat)&&(!loc||o.location===loc)&&(!skill||o.skill===skill));return <Shell role="volunteer"><OppFilters setQ={setQ} setCat={setCat} setLoc={setLoc} setSkill={setSkill} cats={[...new Set(opps.map(o=>o.category))]} locs={[...new Set(opps.map(o=>o.location))]} skills={[...new Set(opps.map(o=>o.skill))]}/><div className="mt-5">{f.length?<OpportunityGrid items={f}/>:<Empty text="No matching opportunities found."/>}</div></Shell>}
 function OpportunityDetail(){const{id}=useParams(),[opps]=useStore("opportunities",[]),[saved,setSaved]=useStore("savedOpportunities",[]);const o=opps.find(x=>x.id===id); if(!o)return <Shell role="volunteer"><Empty text="Opportunity not found."/></Shell>; const is=saved.includes(id);return <Shell role="volunteer"><Card><p className="pill">{o.category}</p><h2 className="text-3xl font-bold mt-3">{o.title}</h2><p className="muted">{o.org} • {o.location} • {o.date}</p><p className="my-5">{o.description}</p><p><b>Requirements:</b> {o.requirements}</p><div className="flex gap-3 mt-6"><Link className="btn" to={`/volunteer/apply/${id}`}>Apply now</Link><button className="btn-secondary" onClick={()=>setSaved(is?saved.filter(x=>x!==id):[...saved,id])}>{is?"Unsave":"Save"}</button></div></Card></Shell>}
 function Apply(){const{id}=useParams(),nav=useNavigate(),{user}=useAuth();const[txt,setTxt]=useState(""),[err,setErr]=useState("");const[apps,setApps]=useStore("applications",[]);return <Shell role="volunteer"><Card><h2 className="text-2xl font-bold">Application</h2><textarea className="textarea" placeholder="Why do you want to join?" value={txt} onChange={e=>setTxt(e.target.value)}/>{err&&<p className="error">{err}</p>}<Button onClick={()=>{if(txt.length<20){setErr("Motivation must be at least 20 characters.");return} setApps([...apps,{id:uid("app"),opportunityId:id,volunteerId:user?.id||"guest",volunteerName:user?.name||"Guest Volunteer",motivation:txt,status:"pending",createdAt:new Date().toISOString()}]); nav("/volunteer/applications")}}>Submit application</Button></Card></Shell>}

@@ -273,7 +273,112 @@ function Forgot(){const[mail,setMail]=useState(""),[msg,setMsg]=useState(""),[er
 
 function OppFilters({setQ,setCat,setLoc,setSkill,cats,locs,skills}){return <Card className="grid md:grid-cols-4 gap-3"><input className="input" placeholder="Search opportunities" onChange={e=>setQ(e.target.value)}/><select className="input" onChange={e=>setCat(e.target.value)}><option value="">All categories</option>{cats.map(x=><option key={x}>{x}</option>)}</select><select className="input" onChange={e=>setLoc(e.target.value)}><option value="">All locations</option>{locs.map(x=><option key={x}>{x}</option>)}</select><select className="input" onChange={e=>setSkill(e.target.value)}><option value="">All skills</option>{skills.map(x=><option key={x}>{x}</option>)}</select></Card>}
 function OpportunityGrid({items}){return <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">{items.map(o=><Card key={o.id}><p className="pill">{o.category}</p><h3 className="text-xl font-bold mt-3">{o.title}</h3><p className="muted">{o.org}</p><p className="mt-3">{o.location} • {o.skill}</p><Link className="btn-secondary mt-4 inline-block" to={`/volunteer/opportunity/${o.id}`}>View details</Link></Card>)}</div>}
-function VolunteerDashboard(){const[opps]=useStore("opportunities",[]),[apps]=useStore("applications",[]);return <Shell role="volunteer"><div className="grid md:grid-cols-3 gap-4"><Metric title="Open opportunities" value={opps.filter(o=>o.status==="active").length}/><Metric title="My applications" value={apps.length}/><Metric title="Saved" value={get("savedOpportunities",[]).length}/></div><h2 className="section-title">Recommended opportunities</h2><OpportunityGrid items={opps.slice(0,3)}/></Shell>}
+function VolunteerDashboard(){
+  const [opps]=useStore("opportunities",[]);
+  const [users]=useStore("users",[]);
+  const [orgs]=useStore("organizations",[]);
+  const [q,setQ]=useState("");
+  const [cat,setCat]=useState("");
+  const [loc,setLoc]=useState("");
+  const [skill,setSkill]=useState("");
+
+  const categories = [...new Set(opps.map(o=>o.category))];
+  const locations = [...new Set(opps.map(o=>o.location))];
+  const skills = [...new Set(opps.map(o=>o.skill))];
+
+  const filtered = opps.filter(o =>
+    o.status==="active" &&
+    (!q || o.title.toLowerCase().includes(q.toLowerCase()) || o.org.toLowerCase().includes(q.toLowerCase())) &&
+    (!cat || o.category===cat) &&
+    (!loc || o.location===loc) &&
+    (!skill || o.skill===skill)
+  );
+
+  return (
+    <Shell role="volunteer">
+      <section className="home-stats glass">
+        <div>
+          <span>{opps.filter(o=>o.status==="active").length}</span>
+          <p>Open Opportunities</p>
+        </div>
+        <div>
+          <span>{users.filter(u=>u.role==="volunteer").length + 128}</span>
+          <p>Total Volunteers</p>
+        </div>
+        <div>
+          <span>{orgs.length}</span>
+          <p>Total Organizations</p>
+        </div>
+      </section>
+
+      <section className="home-discovery glass">
+        <div className="home-section-head">
+          <div>
+            <p className="eyebrow">Find your next cause</p>
+            <h2>Discover opportunities</h2>
+          </div>
+          <span>{filtered.length} results</span>
+        </div>
+
+        <div className="home-search-panel">
+          <input
+            className="home-search-input"
+            placeholder="Search volunteer opportunities"
+            value={q}
+            onChange={e=>setQ(e.target.value)}
+          />
+
+          <div className="home-filter-grid">
+            <select value={cat} onChange={e=>setCat(e.target.value)}>
+              <option value="">All categories</option>
+              {categories.map(x=><option key={x} value={x}>{x}</option>)}
+            </select>
+
+            <select value={loc} onChange={e=>setLoc(e.target.value)}>
+              <option value="">All locations</option>
+              {locations.map(x=><option key={x} value={x}>{x}</option>)}
+            </select>
+
+            <select value={skill} onChange={e=>setSkill(e.target.value)}>
+              <option value="">All skills</option>
+              {skills.map(x=><option key={x} value={x}>{x}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="category-glass-grid">
+          {categories.slice(0,6).map(category=>(
+            <button
+              key={category}
+              className={`category-glass-card ${cat===category ? "active" : ""}`}
+              onClick={()=>setCat(cat===category ? "" : category)}
+            >
+              <span>{category.slice(0,2).toUpperCase()}</span>
+              <b>{category}</b>
+              <small>{opps.filter(o=>o.category===category).length} opportunities</small>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="home-recommendations">
+        <div className="home-section-head">
+          <div>
+            <p className="eyebrow">Recommended</p>
+            <h2>Opportunities for you</h2>
+          </div>
+        </div>
+
+        {filtered.length ? (
+          <OpportunityGrid items={filtered.slice(0,6)}/>
+        ) : (
+          <Empty text="No matching opportunities found. Try changing your filters."/>
+        )}
+      </section>
+    </Shell>
+  )
+}
+
 function Discover(){const[opps]=useStore("opportunities",[]);const[q,setQ]=useState(""),[cat,setCat]=useState(""),[loc,setLoc]=useState(""),[skill,setSkill]=useState("");const f=opps.filter(o=>o.status==="active"&&(!q||o.title.toLowerCase().includes(q.toLowerCase())||o.org.toLowerCase().includes(q.toLowerCase()))&&(!cat||o.category===cat)&&(!loc||o.location===loc)&&(!skill||o.skill===skill));return <Shell role="volunteer"><OppFilters setQ={setQ} setCat={setCat} setLoc={setLoc} setSkill={setSkill} cats={[...new Set(opps.map(o=>o.category))]} locs={[...new Set(opps.map(o=>o.location))]} skills={[...new Set(opps.map(o=>o.skill))]}/><div className="mt-5">{f.length?<OpportunityGrid items={f}/>:<Empty text="No matching opportunities found."/>}</div></Shell>}
 function OpportunityDetail(){const{id}=useParams(),[opps]=useStore("opportunities",[]),[saved,setSaved]=useStore("savedOpportunities",[]);const o=opps.find(x=>x.id===id); if(!o)return <Shell role="volunteer"><Empty text="Opportunity not found."/></Shell>; const is=saved.includes(id);return <Shell role="volunteer"><Card><p className="pill">{o.category}</p><h2 className="text-3xl font-bold mt-3">{o.title}</h2><p className="muted">{o.org} • {o.location} • {o.date}</p><p className="my-5">{o.description}</p><p><b>Requirements:</b> {o.requirements}</p><div className="flex gap-3 mt-6"><Link className="btn" to={`/volunteer/apply/${id}`}>Apply now</Link><button className="btn-secondary" onClick={()=>setSaved(is?saved.filter(x=>x!==id):[...saved,id])}>{is?"Unsave":"Save"}</button></div></Card></Shell>}
 function Apply(){const{id}=useParams(),nav=useNavigate(),{user}=useAuth();const[txt,setTxt]=useState(""),[err,setErr]=useState("");const[apps,setApps]=useStore("applications",[]);return <Shell role="volunteer"><Card><h2 className="text-2xl font-bold">Application</h2><textarea className="textarea" placeholder="Why do you want to join?" value={txt} onChange={e=>setTxt(e.target.value)}/>{err&&<p className="error">{err}</p>}<Button onClick={()=>{if(txt.length<20){setErr("Motivation must be at least 20 characters.");return} setApps([...apps,{id:uid("app"),opportunityId:id,volunteerId:user?.id||"guest",volunteerName:user?.name||"Guest Volunteer",motivation:txt,status:"pending",createdAt:new Date().toISOString()}]); nav("/volunteer/applications")}}>Submit application</Button></Card></Shell>}

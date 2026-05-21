@@ -126,6 +126,72 @@ function PublicLayout({children}){return <div className="min-h-screen app-bg p-4
 function Landing(){return <PublicLayout><section className="hero"><div className="glass hero-card"><p className="eyebrow">Volunteer platform for Cebu communities</p><h1>Connecting people with purpose.</h1><p>Discover opportunities, support verified organizations, manage applications, and coordinate local impact through a polished frontend demo.</p><div className="flex flex-wrap gap-3"><Link className="btn" to="/role">Start now</Link><Link className="btn-secondary" to="/volunteer/discover">Explore demo</Link></div></div><div className="glass stats"><b>8</b><span>Seeded opportunities</span><b>6</b><span>Local organizations</span><b>100%</b><span>Frontend-only demo</span></div></section></PublicLayout>}
 function Role(){return <PublicLayout><div className="center-grid">{["volunteer","organization"].map(r=><Card key={r}><h2 className="text-2xl font-bold capitalize">{r}</h2><p className="muted my-3">{r==="volunteer"?"Find causes, save opportunities, and apply with confidence.":"Create opportunities and manage applicants locally."}</p><Link onClick={()=>set("selectedRole",r)} className="btn w-full text-center" to="/signup">Continue as {r}</Link></Card>)}</div></PublicLayout>}
 
+function SocialAuthButtons({mode="signin"}){
+  const nav = useNavigate(), { login } = useAuth();
+
+  function handleSocial(provider){
+    const selectedRole = get("selectedRole","volunteer");
+    const userEmail = provider === "google"
+      ? "google.demo@joinhands.app"
+      : "apple.demo@joinhands.app";
+
+    const userName = provider === "google"
+      ? "Google Demo User"
+      : "Apple Demo User";
+
+    const role = selectedRole;
+    const users = get("users",[]);
+    let user = users.find(u => u.email === userEmail);
+
+    if(!user){
+      user = {
+        id: uid("user"),
+        name: userName,
+        email: userEmail,
+        role,
+        status: "active",
+        provider
+      };
+      set("users",[...users,user]);
+    }
+
+    login(user);
+    nav(`/${role}/dashboard`);
+  }
+
+  return (
+    <div className="social-auth">
+      <div className="auth-divider">
+        <span></span>
+        <p>or continue with</p>
+        <span></span>
+      </div>
+
+      <button type="button" className="social-btn premium-social" onClick={()=>handleSocial("google")}>
+        <span className="social-logo-wrap">
+          <svg viewBox="0 0 24 24" className="brand-logo" aria-hidden="true">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.24 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.84z"/>
+            <path d="M12 5.37c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.47 3.99 2.18 7.06L5.84 9.9C6.71 7.3 9.14 5.37 12 5.37z"/>
+          </svg>
+        </span>
+        Continue with Google
+      </button>
+
+      <button type="button" className="social-btn premium-social" onClick={()=>handleSocial("apple")}>
+        <span className="social-logo-wrap">
+          <svg viewBox="0 0 24 24" className="brand-logo" aria-hidden="true">
+            <path d="M16.37 12.74c.03 3.14 2.75 4.19 2.78 4.2-.02.07-.43 1.48-1.41 2.94-.85 1.26-1.73 2.52-3.12 2.55-1.36.03-1.8-.81-3.36-.81-1.56 0-2.05.78-3.33.84-1.34.05-2.37-1.35-3.23-2.6C2.95 18.2 1.6 15.2 3.4 12.08c.89-1.55 2.49-2.53 4.22-2.56 1.31-.03 2.55.89 3.36.89.81 0 2.33-1.1 3.93-.94.67.03 2.57.27 3.79 2.06-.1.06-2.27 1.32-2.33 3.21z"/>
+            <path d="M14.23 3.34c.71-.86 1.18-2.06 1.05-3.24-1.03.04-2.28.69-3.02 1.55-.66.77-1.23 2-1.08 3.17 1.15.09 2.33-.58 3.05-1.48z"/>
+          </svg>
+        </span>
+        Continue with Apple
+      </button>
+    </div>
+  )
+}
+
 function SignIn(){const nav=useNavigate(),{login}=useAuth();const[form,setForm]=useState({email:"",password:""}),[err,setErr]=useState({});function submit(e){e.preventDefault();let er={}; if(!emailOk(form.email))er.email="Enter a valid email."; if(!form.password)er.password="Password is required."; setErr(er); if(Object.keys(er).length)return; const role=form.email==="admin@joinhands.app"?"admin":get("selectedRole","volunteer"); const users=get("users",[]); let u=users.find(x=>x.email===form.email)||{id:uid("user"),name:form.email.split("@")[0],email:form.email,role,status:"active"}; login(u); nav(`/${u.role}/dashboard`)}return <PublicLayout><AuthCard title="Sign in" form={form} setForm={setForm} submit={submit} err={err}/></PublicLayout>}
 function SignUp(){
   const nav = useNavigate(), { login } = useAuth();
@@ -261,19 +327,126 @@ function SignUp(){
           {err.terms && <small className="error">{err.terms}</small>}
           {ok && <p className="success">{ok}</p>}
 
-          <Button className="w-full">Create account</Button>
+          <Button className="w-full">Create account</Button><SocialAuthButtons mode="signup"/>
         </form>
       </Card>
     </PublicLayout>
   );
 }
 
-function AuthCard({title,form,setForm,submit,err}){return <Card className="auth"><h2>{title}</h2><form onSubmit={submit} className="space-y-4"><Field label="Email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} error={err.email}/><Field label="Password" type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} error={err.password}/><Button className="w-full">Sign in</Button><Link className="muted block text-center" to="/forgot-password">Forgot password?</Link></form></Card>}
+function AuthCard({title,form,setForm,submit,err}){return <Card className="auth"><h2>{title}</h2><form onSubmit={submit} className="space-y-4"><Field label="Email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} error={err.email}/><Field label="Password" type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} error={err.password}/><Button className="w-full">Sign in</Button><SocialAuthButtons mode="signin"/><Link className="muted block text-center" to="/forgot-password">Forgot password?</Link></form></Card>}
 function Forgot(){const[mail,setMail]=useState(""),[msg,setMsg]=useState(""),[err,setErr]=useState("");return <PublicLayout><Card className="auth"><h2>Reset password</h2><form onSubmit={e=>{e.preventDefault(); if(!emailOk(mail)){setErr("Enter a valid email.");return} setErr("");setMsg("Password reset instructions were simulated successfully.");}}><Field label="Email" value={mail} onChange={e=>setMail(e.target.value)} error={err}/><Button className="w-full mt-4">Send reset link</Button>{msg&&<p className="success">{msg}</p>}</form></Card></PublicLayout>}
 
 function OppFilters({setQ,setCat,setLoc,setSkill,cats,locs,skills}){return <Card className="grid md:grid-cols-4 gap-3"><input className="input" placeholder="Search opportunities" onChange={e=>setQ(e.target.value)}/><select className="input" onChange={e=>setCat(e.target.value)}><option value="">All categories</option>{cats.map(x=><option key={x}>{x}</option>)}</select><select className="input" onChange={e=>setLoc(e.target.value)}><option value="">All locations</option>{locs.map(x=><option key={x}>{x}</option>)}</select><select className="input" onChange={e=>setSkill(e.target.value)}><option value="">All skills</option>{skills.map(x=><option key={x}>{x}</option>)}</select></Card>}
 function OpportunityGrid({items}){return <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">{items.map(o=><Card key={o.id}><p className="pill">{o.category}</p><h3 className="text-xl font-bold mt-3">{o.title}</h3><p className="muted">{o.org}</p><p className="mt-3">{o.location} • {o.skill}</p><Link className="btn-secondary mt-4 inline-block" to={`/volunteer/opportunity/${o.id}`}>View details</Link></Card>)}</div>}
-function VolunteerDashboard(){const[opps]=useStore("opportunities",[]),[apps]=useStore("applications",[]);return <Shell role="volunteer"><div className="grid md:grid-cols-3 gap-4"><Metric title="Open opportunities" value={opps.filter(o=>o.status==="active").length}/><Metric title="My applications" value={apps.length}/><Metric title="Saved" value={get("savedOpportunities",[]).length}/></div><h2 className="section-title">Recommended opportunities</h2><OpportunityGrid items={opps.slice(0,3)}/></Shell>}
+function VolunteerDashboard(){
+  const [opps]=useStore("opportunities",[]);
+  const [users]=useStore("users",[]);
+  const [orgs]=useStore("organizations",[]);
+  const [q,setQ]=useState("");
+  const [cat,setCat]=useState("");
+
+  const categoryTiles = [
+    { name:"Education", image:"education.png" },
+    { name:"Environment", image:"environment.png" },
+    { name:"Community", image:"community.png" },
+    { name:"Health", image:"health.png" },
+    { name:"Animal Welfare", image:"animal.png" },
+    { name:"Disaster Response", image:"disaster.png" },
+  ];
+
+  const filtered = opps.filter(o =>
+    o.status==="active" &&
+    (!q || o.title.toLowerCase().includes(q.toLowerCase()) || o.org.toLowerCase().includes(q.toLowerCase())) &&
+    (!cat || o.category===cat)
+  );
+
+  return (
+    <Shell role="volunteer">
+      <section className="jh-mobile-dashboard">
+        <div className="jh-hero-phone glass">
+          <div className="jh-hero-orb"></div>
+
+          <div className="jh-hero-copy">
+            <p>Welcome back,</p>
+            <h1>Vera Marie</h1>
+            <span>Connecting people in purpose</span>
+          </div>
+
+          <div className="jh-stats-row">
+            <div>
+              <b>{opps.filter(o=>o.status==="active").length}</b>
+              <span>Open Opportunities</span>
+            </div>
+            <div>
+              <b>{users.filter(u=>u.role==="volunteer").length + 452}</b>
+              <span>Total Volunteers</span>
+            </div>
+            <div>
+              <b>{orgs.length + 61}</b>
+              <span>Total Organizations</span>
+            </div>
+          </div>
+
+          <div className="jh-search-row">
+            <input
+              value={q}
+              onChange={e=>setQ(e.target.value)}
+              placeholder="Search activities here"
+            />
+            <button aria-label="Filter">≡</button>
+          </div>
+        </div>
+
+        <div className="jh-section-label">Recent Activities</div>
+
+        <section className="jh-category-grid">
+          {categoryTiles.map(item=>(
+            <button
+              key={item.name}
+              className={`jh-category-card glass ${cat===item.name ? "active" : ""}`}
+              onClick={()=>setCat(cat===item.name ? "" : item.name)}
+            >
+              <img
+                src={`/category-icons/${item.image}`}
+                alt={item.name}
+                onError={(e)=>{ e.currentTarget.style.display="none"; }}
+              />
+              <div>
+                <h3>{item.name}</h3>
+                <b>{opps.filter(o=>o.category===item.name).length || 0}</b>
+                <p>Opportunities</p>
+              </div>
+            </button>
+          ))}
+        </section>
+
+        <section className="jh-opportunity-stack">
+          {filtered.slice(0,5).map(o=>(
+            <Link key={o.id} to={`/volunteer/opportunity/${o.id}`} className="jh-opportunity-card glass">
+              <div className="jh-org-logo">
+                {o.org.slice(0,2).toUpperCase()}
+              </div>
+
+              <div className="jh-opportunity-info">
+                <small>{o.date}</small>
+                <h3>{o.org}</h3>
+                <p>{o.title}</p>
+
+                <div className="jh-progress">
+                  <span style={{width:`${Math.min(90, 35 + o.volunteersNeeded)}%`}}></span>
+                </div>
+
+                <button>Join as Volunteer</button>
+              </div>
+            </Link>
+          ))}
+        </section>
+      </section>
+    </Shell>
+  )
+}
+
 function Discover(){const[opps]=useStore("opportunities",[]);const[q,setQ]=useState(""),[cat,setCat]=useState(""),[loc,setLoc]=useState(""),[skill,setSkill]=useState("");const f=opps.filter(o=>o.status==="active"&&(!q||o.title.toLowerCase().includes(q.toLowerCase())||o.org.toLowerCase().includes(q.toLowerCase()))&&(!cat||o.category===cat)&&(!loc||o.location===loc)&&(!skill||o.skill===skill));return <Shell role="volunteer"><OppFilters setQ={setQ} setCat={setCat} setLoc={setLoc} setSkill={setSkill} cats={[...new Set(opps.map(o=>o.category))]} locs={[...new Set(opps.map(o=>o.location))]} skills={[...new Set(opps.map(o=>o.skill))]}/><div className="mt-5">{f.length?<OpportunityGrid items={f}/>:<Empty text="No matching opportunities found."/>}</div></Shell>}
 function OpportunityDetail(){const{id}=useParams(),[opps]=useStore("opportunities",[]),[saved,setSaved]=useStore("savedOpportunities",[]);const o=opps.find(x=>x.id===id); if(!o)return <Shell role="volunteer"><Empty text="Opportunity not found."/></Shell>; const is=saved.includes(id);return <Shell role="volunteer"><Card><p className="pill">{o.category}</p><h2 className="text-3xl font-bold mt-3">{o.title}</h2><p className="muted">{o.org} • {o.location} • {o.date}</p><p className="my-5">{o.description}</p><p><b>Requirements:</b> {o.requirements}</p><div className="flex gap-3 mt-6"><Link className="btn" to={`/volunteer/apply/${id}`}>Apply now</Link><button className="btn-secondary" onClick={()=>setSaved(is?saved.filter(x=>x!==id):[...saved,id])}>{is?"Unsave":"Save"}</button></div></Card></Shell>}
 function Apply(){const{id}=useParams(),nav=useNavigate(),{user}=useAuth();const[txt,setTxt]=useState(""),[err,setErr]=useState("");const[apps,setApps]=useStore("applications",[]);return <Shell role="volunteer"><Card><h2 className="text-2xl font-bold">Application</h2><textarea className="textarea" placeholder="Why do you want to join?" value={txt} onChange={e=>setTxt(e.target.value)}/>{err&&<p className="error">{err}</p>}<Button onClick={()=>{if(txt.length<20){setErr("Motivation must be at least 20 characters.");return} setApps([...apps,{id:uid("app"),opportunityId:id,volunteerId:user?.id||"guest",volunteerName:user?.name||"Guest Volunteer",motivation:txt,status:"pending",createdAt:new Date().toISOString()}]); nav("/volunteer/applications")}}>Submit application</Button></Card></Shell>}
