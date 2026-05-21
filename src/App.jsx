@@ -83,17 +83,7 @@ function Shell({children, role}) {
       </aside>
 
       <main className={`lg:pl-80 p-4 pb-32 lg:pb-8 max-w-7xl mx-auto ${!isVolunteerHome && role==="volunteer" ? "mobile-clean-page" : ""}`}>
-        {isVolunteerHome ? (
-          <div className="home-welcome glass">
-            <div>
-              <p className="welcome-gradient">Welcome Back to JoinHands</p>
-              <h1>{user?.name || "Volunteer"}</h1>
-            </div>
-            <Link to="/volunteer/profile" className="avatar-link" aria-label="Open profile">
-              <span>{(user?.name || "V").slice(0,1).toUpperCase()}</span>
-            </Link>
-          </div>
-        ) : role !== "volunteer" ? (
+      {isVolunteerHome ? null : role !== "volunteer" ? (
           <div className="topbar glass">
             <div>
               <p className="eyebrow">{role} workspace</p>
@@ -347,12 +337,12 @@ function VolunteerDashboard(){
   const [cat,setCat]=useState("");
 
   const categoryTiles = [
-    { name:"Education", image:"education.png" },
-    { name:"Environment", image:"environment.png" },
-    { name:"Community", image:"community.png" },
-    { name:"Health", image:"health.png" },
-    { name:"Animal Welfare", image:"animal.png" },
-    { name:"Disaster Response", image:"disaster.png" },
+    { name:"Education", image:"education.jpg" },
+    { name:"Environment", image:"environment.jpg" },
+    { name:"Community", image:"community.jpg" },
+    { name:"Health", image:"health.jpg" },
+    { name:"Animal Welfare", image:"animal.jpg" },
+    { name:"Disaster Response", image:"disaster.jpg" },
   ];
 
   const filtered = opps.filter(o =>
